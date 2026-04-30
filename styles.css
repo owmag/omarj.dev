@@ -1,0 +1,2023 @@
+      @font-face {
+        font-family: "Monument Grotesk Variable";
+        src: url("https://type.cargo.site/files/CargoMonumentGroteskPlusVariable.woff2")
+          format("woff2-variations");
+        font-weight: 200 1000;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        overscroll-behavior: none;
+        touch-action: pan-x pan-y;
+      }
+
+      /* iOS Safari: flex column + 100vh children need this chain or chip area can get 0 height. */
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Dynamic viewport units — mobile URL bar / toolbars; vh/vw fallbacks for older browsers */
+      @supports (height: 100dvh) {
+        html,
+        body {
+          min-height: 100dvh;
+        }
+      }
+
+      /* Tuning vars on `body` — match app.js where relevant */
+      body {
+        font-family: "Monument Grotesk Variable", system-ui, sans-serif;
+        background: #fff;
+        color: rgba(0, 0, 0, 0.85);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        /* Shared with app.js PANEL_MS — keep in sync */
+        --motion-duration: 0.75s;
+        /* Chip pack moves only — faster than panel drawer */
+        --motion-duration-text: 0.36s;
+        --motion-easing: cubic-bezier(0.22, 1, 0.36, 1);
+        /* Chip reposition / font-size: slight overshoot (y2>1); tune last value for more/less spring. */
+        --motion-easing-text: cubic-bezier(0.22, 1, 0.36, 1.06);
+        --panel-width: 50;
+        /* Inset for chip labels + panel titles (`.page` stays edge-to-edge). */
+        --page-padding-block: 0.45rem;
+        --page-padding-inline: 0.35rem;
+        /* Text chip (`.chip--muted`) */
+        --chip-muted-bg: #808080;
+        /* Chip / titles surface — random neon on each load (app.js). */
+        --titles-page-bg: #fff;
+      }
+
+      .page {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100vh;
+        height: 100dvh;
+        min-width: 0;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        /* No gap when drawer is closed — same idea as column-gap fix (phantom inset). */
+        row-gap: 0;
+        column-gap: 0;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      /*
+        Content pane: landscape — drawer from the left (width tween).
+        Portrait — fixed top 75vh (static); title layer animates over it (see .title-layer).
+      */
+      .content-pane {
+        flex: 0 0 auto;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-self: stretch;
+        width: 0;
+        max-width: min(calc(var(--panel-width) * 1vw), calc(var(--panel-width) * 1dvw));
+        transition: width var(--motion-duration) var(--motion-easing);
+      }
+
+      .page--open .content-pane {
+        width: min(calc(var(--panel-width) * 1vw), calc(var(--panel-width) * 1dvw));
+      }
+
+      .panel-wrap__grow {
+        display: contents;
+      }
+
+      .panel {
+        /* Shared with .panel__body — toolbar title/actions use the same size. */
+        --panel-font-size: 15px;
+        margin: 0;
+        /* No bottom padding — was exposing panel #fff under the grey toolbar in landscape */
+        padding: 0;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: #fff;
+        /* No transition on the base — tab switches must SNAP. The portfolio
+           dark → light collapse curve is gated below on `.panel--projects-collapsing`
+           (added by app.js for ~300ms during collapse). The in-situ dark toggle
+           uses its own `.in-situ--toggling` gate. Anything else (tab swap,
+           color-surface tab, contact tab) gets no transition → instant. */
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+        min-width: min(calc(var(--panel-width) * 1vw), calc(var(--panel-width) * 1dvw));
+        width: min(calc(var(--panel-width) * 1vw), calc(var(--panel-width) * 1dvw));
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+
+      /* Coarse / touch-primary: keep 1px panel edge. Fine pointer (mouse, trackpad): flush edge. */
+      @media (pointer: fine) {
+        .panel {
+          border: none;
+        }
+      }
+
+      /* Label panel: [Color] — match chip strip neon (--titles-page-bg from app.js). */
+      .panel.panel--color-surface {
+        background-color: var(--titles-page-bg);
+      }
+
+      /* Label [Color]: toolbar matches chip strip neon (toolbar was #fff after Text-only grey rule). */
+      .panel.panel--color-surface .panel__toolbar {
+        background-color: var(--titles-page-bg);
+        border-top-color: transparent;
+        border-bottom-color: transparent;
+      }
+
+      /* Label [Color] fade gate: transitions are enabled only while app.js
+         holds `panel--color-surface-toggling` during a [Color] click. Outside
+         that short window, every tab/chrome color change still snaps. */
+      .panel.panel--for-label.panel--color-surface-toggling,
+      .panel.panel--for-label.panel--color-surface-toggling .panel__toolbar {
+        transition:
+          background-color 0.34s ease,
+          border-color 0.34s ease;
+      }
+
+      /*
+        Portrait: article is fixed top 75vh (never resizes). Title screen is a layer on top;
+        it shrinks height 100vh → 25vh (bottom-anchored) to reveal the article — chips reflow into the strip.
+      */
+      @media (orientation: portrait) {
+        .page {
+          flex-direction: column;
+          min-height: 100vh;
+          min-height: 100dvh;
+        }
+
+        .content-pane {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          width: 100% !important;
+          max-width: none !important;
+          height: 75vh;
+          height: 75dvh;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          overscroll-behavior: none;
+          transition: none;
+          pointer-events: none;
+        }
+
+        .page--open .content-pane {
+          pointer-events: auto;
+        }
+
+        .title-layer {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          height: 100dvh;
+          width: 100% !important;
+          overflow: hidden;
+          transition: height var(--motion-duration) var(--motion-easing);
+          will-change: height;
+        }
+
+        .page--open .title-layer {
+          height: 25vh;
+          height: 25dvh;
+        }
+
+        .panel-wrap__grow {
+          display: flex;
+          flex-direction: column;
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .panel {
+          width: 100%;
+          min-width: 0;
+          flex: 1;
+          min-height: 0;
+          max-height: none;
+          overflow: hidden;
+          overscroll-behavior: none;
+          /* Flush with pills strip — no grey seam above title layer */
+          border-bottom: none;
+          /* Edge-to-edge with viewport — no inset strip above chips or at sides */
+          border-left: none;
+          border-right: none;
+        }
+
+        .bio-rope__static {
+          padding-left: 0;
+        }
+
+        /* Chips sit on the real floor; left edge aligns with canvas (home-indicator inset only). */
+        .chips-viewport {
+          padding: var(--page-padding-block) var(--page-padding-inline)
+            env(safe-area-inset-bottom, 0px) 0;
+        }
+      }
+
+      /*
+        Landscape: same idea as portrait — panel column is fixed (does not tween with the drawer).
+        Only the title/chips layer moves (slides right) to reveal the panel; content never resizes during the open tween.
+      */
+      @media (orientation: landscape) {
+        .page {
+          --panel-width-abs: min(calc(var(--panel-width) * 1vw), calc(var(--panel-width) * 1dvw));
+        }
+
+        .content-pane {
+          position: fixed;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          z-index: 1;
+          width: var(--panel-width-abs) !important;
+          max-width: var(--panel-width-abs) !important;
+          flex: none !important;
+          align-self: stretch;
+          transition: none !important;
+          pointer-events: none;
+        }
+
+        .page--open .content-pane {
+          pointer-events: auto;
+        }
+
+        .title-layer {
+          position: fixed;
+          left: 0;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 2;
+          flex: none !important;
+          width: 100% !important;
+          height: 100% !important;
+          min-width: 0;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          transition: transform var(--motion-duration) var(--motion-easing);
+          will-change: transform;
+        }
+
+        .page--open .title-layer {
+          transform: translateX(var(--panel-width-abs));
+        }
+
+        /* Flush with chips column — no grey seam beside title layer */
+        .panel {
+          border-right: none;
+        }
+
+        .panel__toolbar {
+          margin-top: auto;
+        }
+      }
+
+      .panel__banner {
+        flex-shrink: 0;
+        height: clamp(5.5rem, 22vw, 9rem);
+        height: clamp(5.5rem, 22dvw, 9rem);
+        background: #fff;
+      }
+
+      /* Bio / Label: full white column from panel top down to the toolbar (no top banner gap). */
+      .panel.panel--for-bio .panel__banner,
+      .panel.panel--for-label .panel__banner,
+      .panel.panel--for-listening .panel__banner,
+      .panel.panel--for-contact .panel__banner,
+      .panel.panel--for-projects .panel__banner,
+      .panel.panel--for-in-situ .panel__banner {
+        display: none;
+      }
+
+      /* In situ dark mode: token swap (no filter / backdrop-filter — Safari‑safe). */
+      .panel.panel--for-in-situ {
+        position: relative;
+      }
+
+      /* Symmetric 0.42s timing for in-situ chrome — applied ONLY while the
+         dark/light toggle is in flight, via the short-lived `in-situ--toggling`
+         class set by app.js (added before the invert flip, removed after the
+         tween). Outside that window the panel chrome has NO transition, so
+         every other state change (tab switch, color tab, contact tab) SNAPS.
+         The projects page has its own gated `.panel--projects-collapsing`
+         curve and is unaffected. */
+      .panel.panel--for-in-situ.in-situ--toggling,
+      .panel.panel--for-in-situ.in-situ--toggling .panel__toolbar {
+        transition:
+          background-color 0.42s ease,
+          border-color 0.42s ease;
+      }
+      .panel.panel--for-in-situ.in-situ--toggling .panel__title,
+      .panel.panel--for-in-situ.in-situ--toggling .panel__link {
+        transition: color 0.42s ease;
+      }
+      /* Body tokens are scoped to the in-situ body and only change on toggle,
+         so their transition can stay declared on the body itself — but gate
+         it on the same class for symmetry with the chrome above. */
+      .panel.panel--for-in-situ.in-situ--toggling .panel__body--in-situ {
+        transition:
+          background-color 0.42s ease,
+          color 0.42s ease;
+      }
+      .panel.panel--for-in-situ.in-situ--toggling .in-situ__circle {
+        transition: border-color 0.42s ease;
+      }
+
+      /* Dark colors. Mirrors the `.panel--projects-expanded` palette so the
+         two dark modes feel like one design language. */
+      .panel.panel--for-in-situ.in-situ--invert {
+        background: #0c0c0e;
+        border-color: #000;
+      }
+      .panel.panel--for-in-situ.in-situ--invert .panel__toolbar {
+        background: #0c0c0e;
+        /* White-on-dark divider at the same perceived weight as the light-mode
+           rgba(0,0,0,0.12) — works for both landscape (border-top) and
+           portrait (border-bottom). */
+        border-color: rgba(255, 255, 255, 0.12);
+      }
+      .panel.panel--for-in-situ.in-situ--invert .panel__title {
+        color: rgba(255, 255, 255, 0.78);
+      }
+      .panel.panel--for-in-situ.in-situ--invert .panel__link {
+        color: rgba(255, 255, 255, 0.65);
+      }
+      @media (hover: hover) {
+        .panel.panel--for-in-situ.in-situ--invert .panel__link:hover {
+          color: rgba(255, 255, 255, 0.95);
+        }
+      }
+
+      .panel__toolbar {
+        flex-shrink: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        /* Slightly less top / more bottom than before so the row sits above vertical centre */
+        padding: calc(0.48rem + var(--page-padding-block))
+          calc(0.85rem + var(--page-padding-inline)) 0.52rem
+          calc(0.85rem + var(--page-padding-inline));
+        background: #fff;
+        border-top: 1px solid rgba(0, 0, 0, 0.12);
+        /* No transition on the base — tab swaps SNAP. Portfolio collapse curve
+           is gated on `.panel--projects-collapsing`, in-situ toggle on
+           `.in-situ--toggling` (see rules below). */
+      }
+
+      @media (orientation: portrait) {
+        .panel__toolbar {
+          order: -1;
+          border-top: none;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+          /* Same vertical bias as landscape — title row a touch higher in the bar */
+          padding: calc(0.48rem + var(--page-padding-block)) calc(0.85rem + var(--page-padding-inline))
+            calc(0.82rem + var(--page-padding-block))
+            calc(0.85rem + var(--page-padding-inline));
+        }
+      }
+
+      .panel__title {
+        margin: 0;
+        font-family: "Monument Grotesk Variable", system-ui, sans-serif;
+        font-size: var(--panel-font-size);
+        font-weight: 400;
+        line-height: 1.5;
+        letter-spacing: 0;
+        color: rgba(0, 0, 0, 0.78);
+        /* No transition on the base — tab swaps SNAP. See `.panel` comment. */
+      }
+
+      .panel__actions {
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.65rem;
+        font-family: "Monument Grotesk Variable", system-ui, sans-serif;
+        font-size: var(--panel-font-size);
+        font-weight: 400;
+        line-height: 1.5;
+      }
+
+      .panel__link {
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: rgba(0, 0, 0, 0.65);
+        text-decoration: none;
+        /* No transition on the base — tab swaps SNAP. See `.panel` comment. */
+      }
+
+      @media (hover: hover) {
+        .panel__link:hover {
+          color: rgba(0, 0, 0, 0.95);
+        }
+      }
+
+      /* Portfolio COLLAPSE curve (dark → light). Active only while app.js holds
+         the short-lived `panel--projects-collapsing` class on the panel — added
+         right before `panel--projects-expanded` is removed, stripped after the
+         tween. Outside that window the panel chrome has NO transition, so tab
+         switches snap. EASE-IN curve `cubic-bezier(0.64, 0, 0.78, 0)` is the
+         time-mirror of the ease-out expand below; duration is intentionally
+         shorter than the 0.45s expand entry — the collapse should feel quicker
+         than the build-up. Keep in sync with PROJECTS_DARK_FADE_OUT_MS in
+         projects-grid-portfolio.js (overlap = this duration - constant;
+         currently 300ms - 250ms = 50ms). Change all four rules together. */
+      .panel.panel--projects-collapsing {
+        transition:
+          background-color 0.3s cubic-bezier(0.64, 0, 0.78, 0),
+          border-color 0.3s cubic-bezier(0.64, 0, 0.78, 0);
+      }
+      .panel.panel--projects-collapsing .panel__toolbar {
+        transition:
+          border-color 0.3s cubic-bezier(0.64, 0, 0.78, 0),
+          background-color 0.3s cubic-bezier(0.64, 0, 0.78, 0);
+      }
+      .panel.panel--projects-collapsing .panel__title,
+      .panel.panel--projects-collapsing .panel__link {
+        transition: color 0.3s cubic-bezier(0.64, 0, 0.78, 0);
+      }
+
+      /* Dark mode for the panel toolbar while a portfolio cell is fully expanded.
+         App.js toggles `panel--projects-expanded` on the `.panel` element from the
+         `store1-projects-expanded` event. EXPAND (light → dark) tweens at 0.45s
+         via the rules below; COLLAPSE (dark → light) tweens at 0.3s ease-in via
+         the `.panel--projects-collapsing` rules above. Sequencing — dark fades
+         out first, then the cell shrinks — is handled in `collapseCell`
+         (projects-grid-portfolio.js), not here. */
+      .panel.panel--projects-expanded {
+        border-color: #000;
+        transition:
+          background-color 0.45s var(--motion-easing),
+          border-color 0.45s var(--motion-easing);
+      }
+      .panel.panel--projects-expanded .panel__toolbar {
+        background: #000;
+        /* Mirror the light-mode divider: base toolbar uses `rgba(0, 0, 0, 0.12)`
+           on white, dark mode uses `rgba(255, 255, 255, 0.12)` on black so the
+           seam stays visible at the same perceived weight regardless of
+           orientation (landscape -> border-top, portrait -> border-bottom).
+           Shorthand so both edges tween in lockstep with background + outer
+           panel border. */
+        border-color: rgba(255, 255, 255, 0.12);
+        transition:
+          border-color 0.45s var(--motion-easing),
+          background-color 0.45s var(--motion-easing);
+      }
+      .panel.panel--projects-expanded .panel__title {
+        color: rgba(255, 255, 255, 0.78);
+        transition: color 0.45s var(--motion-easing);
+      }
+      .panel.panel--projects-expanded .panel__link {
+        color: rgba(255, 255, 255, 0.65);
+        transition: color 0.45s var(--motion-easing);
+      }
+      @media (hover: hover) {
+        .panel.panel--projects-expanded .panel__link:hover {
+          color: rgba(255, 255, 255, 0.95);
+        }
+      }
+
+      .panel__body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        overscroll-behavior: none;
+        padding: 0.45rem calc(0.85rem + var(--page-padding-inline)) 0.85rem;
+        font-family: "Monument Grotesk Variable", system-ui, sans-serif;
+        font-size: var(--panel-font-size);
+        line-height: 1.5;
+        color: rgba(0, 0, 0, 0.82);
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Keep empty body in the flex tree so the banner/toolbar gap matches panels with content. */
+      .panel__body:empty {
+        padding: 0;
+      }
+
+      /* Bio: full-bleed rope area; particle floor is container bottom (bio-rope.js). */
+      .panel__body--bio {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      /* Label: Pretext lines + fit-bounded scale + input */
+      .panel__body--label {
+        margin: 0;
+        padding: 0.5rem calc(0.65rem + var(--page-padding-inline)) 0.65rem;
+        overflow: hidden;
+      }
+
+      /* Contact: image covers full panel; toolbar floats on top (no bar, no hairline) */
+      .panel.panel--for-contact {
+        position: relative;
+        border: none;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      .panel.panel--for-contact .panel__body--contact {
+        position: absolute;
+        inset: 0;
+        flex: none;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .panel.panel--for-contact .panel__toolbar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        z-index: 2;
+        margin-top: 0;
+        background: transparent;
+        border: none;
+        transition: none;
+      }
+
+      .panel.panel--for-contact .panel__title,
+      .panel.panel--for-contact .panel__link {
+        color: #fff;
+      }
+
+      @media (hover: hover) {
+        .panel.panel--for-contact .panel__link:hover {
+          color: #fff;
+        }
+      }
+
+      @media (orientation: landscape) {
+        .panel.panel--for-contact .panel__toolbar {
+          bottom: 0;
+          top: auto;
+        }
+      }
+
+      @media (orientation: portrait) {
+        .panel.panel--for-contact .panel__toolbar {
+          top: 0;
+          bottom: auto;
+        }
+      }
+
+      /* Debug tracker: small low-opacity red rect pinned to a feature in the
+         contact image. Positioned by JS via `imageToElement(px, py)` so it
+         stays glued to the same point as the image is resized / cropped. */
+      /* Size set in JS (image-natural px × cover scale) so markers grow with
+         the photo. Background also set inline per marker. Anchors are
+         clickable hot-zones (call / Instagram / email). */
+      .panel__body--contact .contact-panel__marker {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: block;
+        opacity: 0;
+        z-index: 3;
+        cursor: pointer;
+        text-decoration: none;
+        will-change: transform, width, height;
+        transition: opacity 0.15s ease;
+      }
+
+      .panel__body--contact .contact-panel__marker:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+        opacity: 0.4;
+      }
+
+      .panel__body--contact .contact-panel__img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        object-fit: cover;
+        object-position: center;
+        filter: saturate(0);
+      }
+
+      /* Projects — index99-style grid (projects-grid-portfolio.js) */
+      .panel__body--projects {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .projects-panel__scroller {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        background: #0a0a0a;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scroll-behavior: auto;
+        -webkit-scroll-snap-type: y mandatory;
+        scroll-snap-type: y mandatory;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .projects-panel__scroller::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+      }
+
+      .projects-panel__slide {
+        position: relative;
+        height: 100%;
+        min-height: 100%;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        -webkit-scroll-snap-align: start;
+        scroll-snap-align: start;
+        -webkit-scroll-snap-stop: always;
+        scroll-snap-stop: always;
+      }
+
+      /* Floats over video like `.panel__toolbar` (absolute, z-index 2); opposite edge from toolbar so both can sit on picture. */
+      .panel.panel--for-projects .panel__body--projects > .projects-panel__title {
+        position: absolute;
+        left: 0;
+        right: 0;
+        z-index: 2;
+        margin: 0;
+        padding: calc(0.48rem + var(--page-padding-block)) calc(0.85rem + var(--page-padding-inline)) 0.52rem
+          calc(0.85rem + var(--page-padding-inline));
+        background: transparent;
+        color: #fff;
+        pointer-events: none;
+      }
+
+      @media (orientation: landscape) {
+        .panel.panel--for-projects .panel__body--projects > .projects-panel__title {
+          top: 0;
+          bottom: auto;
+        }
+      }
+
+      .projects-panel__slide .projects-panel__video,
+      .projects-panel__slide .projects-panel__hero {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
+      }
+
+      .projects-panel__slide .projects-panel__video {
+        z-index: 0;
+      }
+
+      .projects-panel__slide .projects-panel__hero {
+        z-index: 1;
+        pointer-events: none;
+        transition: opacity 0.08s linear;
+      }
+
+      .projects-panel__slide--video-ready .projects-panel__hero {
+        opacity: 0;
+      }
+
+      /* Hide the per-cell poster while a portfolio cell is fully expanded so the
+         object-fit: contain preview video doesn't show a cover-fit poster behind
+         its letterboxing. */
+      .project-grid-portfolio__grid .project-cell.expanded .project-tile-hero {
+        opacity: 0;
+      }
+      /* Collapse handoff: instead of fading out the preview video, swap
+         `.expanded` for `.hero-restoring` so the cover-fit poster fades back in
+         on top of the still-playing video, then the video is recycled
+         underneath once the fade completes. */
+      .project-grid-portfolio__grid .project-cell.hero-restoring .project-tile-hero {
+        opacity: 1;
+        z-index: 10;
+      }
+
+      @media (orientation: portrait) {
+        .panel.panel--for-projects .panel__body--projects > .projects-panel__title {
+          top: auto;
+          bottom: 0;
+          padding: 0.52rem calc(0.85rem + var(--page-padding-inline)) calc(0.82rem + var(--page-padding-block))
+            calc(0.85rem + var(--page-padding-inline));
+        }
+      }
+
+      /* STORE.html-style vertical title stack: clip names in a track, `translateY` driven from JS. */
+      .projects-panel__title-folder {
+        overflow: hidden;
+      }
+
+      .projects-panel__title-track {
+        will-change: transform;
+      }
+
+      .projects-panel__title-line {
+        margin: 0;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        max-width: 100%;
+      }
+
+      /* In situ — circular-scroll panel (homage to crawlspace.cool / Miaoye Que).
+         Entries sit on a circle; the wrapper is translated to anchor any chosen
+         angle at the panel center. Wheel + drag updates the offset. */
+      .panel__body--in-situ {
+        /* Semantic tokens — swap these to flip dark/light. No filter, no overlay. */
+        --in-situ-bg: #fff;
+        --in-situ-fg: rgba(0, 0, 0, 0.85);
+        --in-situ-ring: #008000;
+        /* Scroll-style pointer (not grab/hand) — wheel + drag scrubs the ring. */
+        --in-situ-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath fill='none' stroke='%23222' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M14 5v18M9 11l5-6 5 6M9 17l5 6 5-6'/%3E%3C/svg%3E")
+            14 14,
+          ns-resize;
+        --in-situ-entry-w: 20vw;
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: var(--in-situ-bg);
+        font-family: "Monument Grotesk Variable", system-ui, sans-serif;
+        font-size: 2vh;
+        color: var(--in-situ-fg);
+        -webkit-user-select: none;
+        user-select: none;
+        touch-action: none;
+        cursor: var(--in-situ-cursor);
+      }
+
+      @media (max-width: 900px) {
+        .panel__body--in-situ {
+          font-size: 1.5vh;
+        }
+      }
+      @media (max-height: 600px) {
+        .panel__body--in-situ {
+          font-size: 1.5vw;
+        }
+      }
+      @media (max-width: 450px) {
+        .panel__body--in-situ {
+          font-size: 1.1vh;
+        }
+      }
+
+      .panel__body--in-situ:active {
+        cursor: var(--in-situ-cursor);
+      }
+
+      /* Dark mode: swap tokens. Same scroll glyph, light stroke for the inverted panel. */
+      .panel.panel--for-in-situ.in-situ--invert .panel__body--in-situ {
+        --in-situ-bg: #0c0c0e;
+        --in-situ-fg: #f5f5f5;
+        --in-situ-ring: #4ade80;
+        --in-situ-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath fill='none' stroke='%23f5f5f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M14 5v18M9 11l5-6 5 6M9 17l5 6 5-6'/%3E%3C/svg%3E")
+            14 14,
+          ns-resize;
+      }
+
+      .in-situ {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      /* Focal point — where the chosen ring point is pinned. */
+      .in-situ__main {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+      }
+
+      /* Wrapper is translated by JS each frame: translate(r·sin(offset), r·cos(offset)). */
+      .in-situ__wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      /* Circle's center is at the wrapper's origin (0,0) so the dashed ring
+         and the entries-anchor share a center → entries lie on the visible ring. */
+      .in-situ__circle {
+        position: absolute;
+        width: calc(10 * var(--in-situ-entry-w));
+        height: calc(10 * var(--in-situ-entry-w));
+        border-radius: 50%;
+        border: 1px dashed var(--in-situ-ring);
+        top: calc(-5 * var(--in-situ-entry-w));
+        left: calc(-5 * var(--in-situ-entry-w));
+      }
+
+      /* 0×0 anchor at circle center — entries are placed by transform from here. */
+      .in-situ__entries {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+      }
+
+      .in-situ__entry {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: var(--in-situ-entry-w);
+        cursor: inherit;
+        text-align: left;
+      }
+
+      .in-situ__time {
+        opacity: 0.7;
+        margin-bottom: 0.15em;
+        transform: scaleX(0.8);
+        transform-origin: left center;
+      }
+
+      .in-situ__words {
+        display: block;
+        line-height: 1.25;
+        transform: scaleX(0.8);
+        transform-origin: left center;
+      }
+
+      /* Listening: welcome.audio — scoped to panel body */
+      .panel__body--listening {
+        /* Scales gradient, type, grain (tune 0.65–1). Cursor is counter-scaled in CSS. */
+        --listening-welcome-scale: 0.78;
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0;
+        padding: calc(1.15rem + var(--page-padding-block))
+          calc(1.25rem + var(--page-padding-inline));
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
+      .listening-welcome {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        /* translateZ(0) promotes a layer — helps WebKit repaint blend + scaled subtree after drawer opens */
+        transform: translateZ(0) scale(var(--listening-welcome-scale, 1));
+        transform-origin: center center;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        cursor: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(
+          circle at 50% 50%,
+          #2a2a2a 0%,
+          #121212 25%,
+          #2563eb var(--gradient-radius, 65%),
+          #001a4d 100%
+        );
+        color: white;
+        position: relative;
+        overflow: hidden;
+        font-family: "Tangerine", cursive;
+        font-weight: 700;
+        font-style: normal;
+        transition: background 0.8s ease;
+        touch-action: none;
+        box-sizing: border-box;
+        /* Blend modes on children (cursor, overlay, grain) only mix inside this box — not the chips column. */
+        isolation: isolate;
+        z-index: 0;
+        /* Undo parent scale so the custom cursor matches unscaled viewport size */
+        --listening-cursor-compensation: calc(1 / var(--listening-welcome-scale, 1));
+      }
+
+      /* 1.5× prior layout (3rem base) */
+      .listening-welcome h1 {
+        font-size: 4.5rem;
+        /* Above inversion overlay (5) and the custom cursor (8) */
+        z-index: 9;
+        position: relative;
+        mix-blend-mode: normal;
+        color: white;
+        user-select: none;
+        -webkit-user-select: none;
+        transform: translateZ(0);
+      }
+
+      .listening-welcome.grainy-aria::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        mix-blend-mode: overlay;
+        opacity: 0.35;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        /* Larger tile = coarser / bigger grain; keyframes scaled to tile size */
+        background-size: 320px 320px;
+        animation: listening-grain-shift 1.8s steps(6) infinite;
+      }
+
+      @keyframes listening-grain-shift {
+        0% {
+          background-position: 0 0;
+        }
+        25% {
+          background-position: 73px -44px;
+        }
+        50% {
+          background-position: -59px 29px;
+        }
+        75% {
+          background-position: 44px 59px;
+        }
+        100% {
+          background-position: 0 0;
+        }
+      }
+
+      /* `left`/`top` are the circle center — always offset by half size so removing .respawn/.show
+         before .expand doesn’t jump (otherwise top-left sits on the point for one frame). */
+      .listening-welcome .cursor-circle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: white;
+        pointer-events: none;
+        mix-blend-mode: difference;
+        z-index: 8; /* below h1 (9); above overlay (5) */
+        display: block;
+        transform: translate(-50%, -50%) scale(var(--listening-cursor-compensation));
+        transform-origin: center center;
+      }
+
+      .listening-welcome .cursor-circle.cursor--waiting {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0);
+        transition: none;
+      }
+
+      .listening-welcome .cursor-circle.expand {
+        transition: transform 1.9s cubic-bezier(0.45, 0, 0.55, 1);
+        transform: translate(-50%, -50%) scale(200) scale(var(--listening-cursor-compensation));
+      }
+
+      .listening-welcome .cursor-circle.shrink {
+        transition: transform 0.1s ease-in;
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+      }
+
+      .listening-welcome .cursor-circle.respawn {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+      }
+
+      .listening-welcome .cursor-circle.respawn.show {
+        transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+        transform: translate(-50%, -50%) scale(1) scale(var(--listening-cursor-compensation));
+        opacity: 1;
+      }
+
+      .listening-welcome__white-overlay.white-overlay {
+        position: absolute;
+        inset: 0;
+        background: white;
+        mix-blend-mode: difference;
+        z-index: 5;
+        pointer-events: none;
+      }
+
+      .listening-welcome .cursor-circle.hidden {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+      }
+
+      .label-editor {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .label-editor__viewport {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 0.25rem;
+      }
+
+      /* position:relative + top-left block: flex-centering a 1000px-font layout box breaks
+         iOS overflow/hit-testing vs transform:scale() (visual vs coordinate mismatch). */
+      .label-editor__stage {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .label-editor__block {
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform-origin: 0 0;
+        overflow: hidden;
+      }
+
+      .label-editor__lines {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      /* Reference font size set on `.label-editor__block` in label-pretext.js; screen size = transform scale. */
+      .label-editor__line {
+        margin: 0;
+        padding: 0;
+        height: var(--label-line-height, 1050px);
+        line-height: var(--label-line-height, 1050px);
+        white-space: nowrap;
+        overflow: visible;
+        font-family: "Monument Grotesk Variable", system-ui, sans-serif;
+        font-weight: 400;
+        font-size: var(--label-font-size, 1000px);
+        color: rgba(0, 0, 0, 0.88);
+      }
+
+      /* Native caret hidden; custom caret above glyphs, below textarea (still receives taps). */
+      .label-editor__fake-caret {
+        display: none;
+        position: absolute;
+        z-index: 1;
+        pointer-events: none;
+        top: 0;
+        left: 0;
+        width: 0.03em;
+        height: var(--label-line-height, 1050px);
+        margin: 0;
+        padding: 0;
+        background: rgba(0, 0, 0, 0.82);
+        box-sizing: border-box;
+        font-size: var(--label-font-size, 1000px);
+        line-height: 1;
+        animation: label-editor-fake-caret-blink 1.06s step-end infinite;
+      }
+
+      @keyframes label-editor-fake-caret-blink {
+        0%,
+        49% {
+          opacity: 1;
+        }
+        50%,
+        100% {
+          opacity: 0;
+        }
+      }
+
+      /* Invisible typed text; Pretext lines show underneath. Custom caret replaces native. */
+      .label-editor__overlay-input {
+        box-sizing: border-box;
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+        resize: none;
+        overflow: hidden;
+        scrollbar-width: none;
+        white-space: pre;
+        font-family: "Monument Grotesk Variable", system-ui, sans-serif;
+        font-weight: 400;
+        font-size: var(--label-font-size, 1000px);
+        line-height: var(--label-line-height, 1050px);
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .label-editor .label-editor__overlay-input {
+        z-index: 2;
+        caret-color: transparent;
+      }
+
+      .label-editor__overlay-input::-webkit-scrollbar {
+        display: none;
+      }
+
+      .label-editor__overlay-input::selection {
+        background: rgba(0, 0, 0, 0.12);
+        color: transparent;
+      }
+
+      .label-editor__overlay-input:focus,
+      .label-editor__overlay-input:focus-visible {
+        outline: none;
+        box-shadow: none;
+      }
+
+      .bio-rope {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+        user-select: none;
+        overflow: hidden;
+      }
+
+      /* Inset for the flowing paragraph only — rope layer stays full-bleed in .bio-rope. */
+      .bio-rope__static {
+        position: relative;
+        z-index: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-wrap: break-word;
+        overflow: hidden;
+        padding: 0.45rem calc(0.85rem + var(--page-padding-inline)) 0.85rem;
+        box-sizing: border-box;
+      }
+
+      .bio-rope__layer {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .bio-rope__word {
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: auto;
+        will-change: transform;
+        white-space: nowrap;
+        transform-origin: center center;
+        cursor: grab;
+        touch-action: none;
+      }
+
+      /* :active is lost when unclip rebuilds DOM — JS keeps .bio-rope--dragging for the whole hold */
+      .bio-rope__word:active,
+      .bio-rope.bio-rope--dragging .bio-rope__word {
+        cursor: grabbing;
+      }
+
+      .bio-rope.bio-rope--dragging {
+        cursor: grabbing;
+      }
+
+      /* Pretext positions chips with translate(); font size set via --chip-font-size */
+      .chips-viewport {
+        position: relative;
+        flex: 1 1 0%;
+        min-width: 0;
+        min-height: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        padding: var(--page-padding-block) var(--page-padding-inline);
+        box-sizing: border-box;
+        background: var(--titles-page-bg);
+      }
+
+      .chips {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        /* Match app.js chipFont() + Pretext canvas — omit system-ui so DOM and measureText share the same fallbacks. */
+        font-family: "Monument Grotesk Variable", sans-serif;
+        font-weight: 400;
+        font-style: normal;
+        line-height: 1.1;
+        font-variation-settings: "slnt" 0, "MONO" 0;
+        visibility: hidden;
+      }
+
+      .chips.chips--ready {
+        visibility: visible;
+      }
+
+      .chip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        appearance: none;
+        margin: 0;
+        cursor: pointer;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        font-family: inherit;
+        font-weight: 400;
+        font-style: normal;
+        font-variation-settings: "slnt" 0, "MONO" 0;
+        font-size: var(--chip-font-size, clamp(3.2rem, 19vw, 12rem));
+        font-size: var(--chip-font-size, clamp(3.2rem, 19dvw, 12rem));
+        letter-spacing: 0;
+        text-transform: none;
+        line-height: 1;
+        padding: 0.105em 0.34em 0.09em;
+        /* Was 10em. Chip height is ~1.2em, so any radius ≥ ~0.6em already
+           renders as a perfect pill (CSS clamps radius to half the smaller
+           dimension). 1em is just above that threshold, so the static look is
+           identical to 10em — but the tween toward .chip--tall's 0.45em now
+           crosses the visible-rectangle threshold within the first ~30% of
+           the duration instead of the last 2%. Big win for "happens sooner". */
+        border-radius: 1em;
+        white-space: nowrap;
+        color: rgba(255, 255, 255, 1);
+        background: #000;
+        border: 1px solid transparent;
+      }
+
+      /* Vertical stretch: scaleY (font-stretch is width-only on variable fonts) */
+      .chip__label {
+        display: inline-block;
+        transform: scaleY(1.1);
+        transform-origin: center;
+      }
+
+      /* Tall variant — chip height is controlled ENTIRELY by padding (smooth tween)
+         and the sub-label is positioned absolutely inside the extra bottom padding,
+         so toggling never produces an instant layout jump.
+         Geometry (in chip-font ems):
+           pad-top  0.105 + 0.45 = 0.555
+           label    scaleY(1.1)  = 1.10
+           pad-bot  0.09  + 1.07 = 1.16
+           total                 ≈ 2.815em
+         JS tryPack() uses TALL_CHIP_EXTRA_Y_EM = 1.52 so Pretext re-packs neighbours
+         with the matching height. */
+      .chip--tall {
+        /* Label sits a touch higher inside the pill: 0.10em shifted from top
+           padding to bottom padding. Total height is unchanged (0.555 + 1.16
+           still == 0.455 + 1.26 == 1.715em above base), so the JS hint
+           TALL_CHIP_EXTRA_Y_EM = 1.52 still matches and Pretext re-packs the
+           same way. The sublabel is bottom-anchored so its on-screen position
+           is unaffected. */
+        padding-top: calc(0.105em + 0.35em);
+        padding-bottom: calc(0.09em + 1.17em);
+        /* Down from 10em (full pill) — reads as a soft-cornered rectangle. */
+        border-radius: 0.45em;
+      }
+
+      /* ANTICIPATION (12 principles, #2): the pill briefly grows ~0.11em taller
+         while the user holds the press. .chip--windup is added on pointerdown
+         and removed on either pointerleave (pull-back) or commit (release →
+         punch+snap). Lives on its own class — distinct from .chip--collapsing —
+         so adding/removing it never touches the .chip__sublabel rules and the
+         language row stays put through fidgety drag-off/drag-back gestures.
+         !important is required to beat the .chips--motion .chip transition. */
+      .chip--tall.chip--windup {
+        /* Same 0.10em top→bottom shift as .chip--tall above, applied on top of
+           the wind-up bump, so the anticipation rise stays exactly +0.05em /
+           +0.06em over the resting tall geometry. */
+        padding-top: calc(0.105em + 0.40em);
+        padding-bottom: calc(0.09em + 1.23em);
+        /* Snappy 200ms ease-in-out — the bump is small, so spreading the motion
+           across the full duration reads as a deliberate rise rather than a
+           front-loaded pop. On pull-back the chip eases back via .chip--tall's
+           default 360ms padding transition (slightly slower release of tension,
+           which feels right). */
+        transition:
+          padding-top 200ms cubic-bezier(0.4, 0, 0.6, 1),
+          padding-bottom 200ms cubic-bezier(0.4, 0, 0.6, 1) !important;
+      }
+
+      /* Sub-label line — only visible inside .chip--tall. Each color swatch
+         is its own span so they can pop in one-by-one with a staggered bounce.
+         Absolutely positioned so it doesn't contribute to the chip's intrinsic height
+         (the height tween then runs cleanly via padding alone). */
+      .chip__sublabel {
+        display: none;
+      }
+      .chip--tall .chip__sublabel,
+      .chip--collapsing .chip__sublabel {
+        display: flex;
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: calc(0.09em + 0.72em);
+        justify-content: center;
+        align-items: center;
+        gap: 0.28em;
+        font-size: 0.5em;
+        letter-spacing: 0.03em;
+        line-height: 1;
+        opacity: 0.85;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+      .chip--tall .chip__sublabel {
+        pointer-events: auto;
+      }
+      .chip--collapsing .chip__sublabel {
+        pointer-events: none;
+      }
+      .chip__lang-orb {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 2.08em;
+        height: 2.08em;
+        border-radius: 50%;
+        background: #fff;
+        border: none;
+        mix-blend-mode: difference;
+        transform: translate3d(var(--lang-orb-x, 0px), -50%, 0);
+        transform-origin: center center;
+        pointer-events: none;
+        z-index: 3;
+        will-change: transform, opacity;
+      }
+      /* Fade the orb in as the chip drops down. Opacity-only by design —
+         `transform` is reserved for the position CSS var (--lang-orb-x) and
+         the WAAPI animation that runs on language switch, so animating it
+         here would clobber both. The 80ms delay lets the chip's height
+         tween visibly start descending first; the orb then materializes
+         over the back half of the drop and lands ~at the same time the
+         pills start popping in (180ms). */
+      .chip--tall .chip__lang-orb {
+        animation: chip-lang-orb-fade-in 280ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+      }
+      @keyframes chip-lang-orb-fade-in {
+        0%   { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      /* Language row HOLDS in place through the whole wind-up + apex hold (both
+         .chip--tall and .chip--collapsing on), then once .chip--tall is removed
+         (snap begins) it does a single super-quick straight fade — no fall, no
+         stagger, just disappears so the chip can collapse cleanly. */
+      .chip--collapsing:not(.chip--tall) .chip__sublabel {
+        animation: chip-sublabel-fade 20ms linear both;
+      }
+      /* Cancel any lingering per-item pop-in so the fade applies as one group. */
+      .chip--collapsing .chip__sublabel > * {
+        animation: none;
+      }
+      @keyframes chip-sublabel-fade {
+        0%   { opacity: 0.85; }
+        100% { opacity: 0; }
+      }
+      .chip__sublabel-item,
+      .chip__sublabel-sep {
+        display: inline-block;
+        transform-origin: center center;
+        will-change: transform, opacity;
+      }
+      .chip__sublabel-item {
+        position: relative;
+        z-index: 1;
+        min-width: 1.6em;
+        text-align: center;
+        cursor: pointer;
+        pointer-events: auto;
+        opacity: 0.95;
+        transition: transform 130ms ease, opacity 130ms ease;
+      }
+      .chip__sublabel-item--active {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+      .chip__sublabel-sep {
+        opacity: 0.7;
+      }
+
+      /* Staggered pop-in. Pretext is re-packing the chips during these same ~480ms;
+         the items overshoot slightly (cubic-bezier with peak >1) so each lands with a
+         tiny bounce in sync with the chip's height tween. */
+      @keyframes chip-sublabel-pop {
+        0% {
+          opacity: 0;
+          transform: translateY(0.45em) scale(0.4);
+        }
+        55% {
+          opacity: 1;
+          transform: translateY(-0.05em) scale(1.12);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .chip--tall .chip__sublabel > :not(.chip__lang-orb) {
+        animation: chip-sublabel-pop 460ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      /* 5 swatches. Held back ~180ms so the chip's height
+         tween (~0.36s) is visibly past halfway before the first item starts popping
+         in — keeps the height growth feeling intentional rather than instant. */
+      .chip--tall .chip__sublabel > *:nth-child(2) { animation-delay: 180ms; }
+      .chip--tall .chip__sublabel > *:nth-child(3) { animation-delay: 212ms; }
+      .chip--tall .chip__sublabel > *:nth-child(4) { animation-delay: 244ms; }
+      .chip--tall .chip__sublabel > *:nth-child(5) { animation-delay: 276ms; }
+      .chip--tall .chip__sublabel > *:nth-child(6) { animation-delay: 308ms; }
+
+      /* Transitions enabled only after first layout (see app.js `chips--motion`) so first paint does not tween from 0,0.
+         padding-top/bottom included so .chip--tall toggles tween in-step with the sibling reflow. */
+      .chips.chips--motion .chip {
+        transition:
+          transform var(--motion-duration-text) var(--motion-easing-text),
+          font-size var(--motion-duration-text) var(--motion-easing-text),
+          padding-top var(--motion-duration-text) var(--motion-easing-text),
+          padding-bottom var(--motion-duration-text) var(--motion-easing-text),
+          /* No-overshoot easing for radius — keeps the rest of the chip bouncy without
+             rocking the corner curve back and forth. */
+          border-radius var(--motion-duration-text) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      /* Asymmetric corner timing: while .chip--tall is on the element (the
+         expand direction), square the corners faster so the rectangle silhouette
+         locks in well before the padding/height tween finishes. On collapse the
+         class is removed first, so the slower default above takes over and the
+         pill rounds out at the normal pace. */
+      .chips.chips--motion .chip.chip--tall {
+        transition:
+          transform var(--motion-duration-text) var(--motion-easing-text),
+          /* font-size + border-radius use a no-overshoot ease-out so the
+             em-based radius doesn't bounce. They MUST share the same curve and
+             duration — radius is in `em`, so any mismatch with font-size makes
+             the radius appear to snap mid-tween. */
+          font-size var(--motion-duration-text) cubic-bezier(0.22, 1, 0.36, 1),
+          padding-top var(--motion-duration-text) var(--motion-easing-text),
+          padding-bottom var(--motion-duration-text) var(--motion-easing-text),
+          border-radius 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      /* Phase-2 SNAP: once .chip--tall is gone (only .chip--collapsing remains),
+         give padding a slightly longer tween than the base 360ms so the release
+         after the wind-up has a touch more weight — feels less like a flick.
+         The wind-up rule .chip--tall.chip--collapsing uses !important and wins
+         while both classes are on, so anticipation timing is untouched. */
+      .chips.chips--motion .chip.chip--collapsing {
+        transition:
+          transform var(--motion-duration-text) var(--motion-easing-text),
+          /* See .chip--tall: font-size + border-radius locked to the same
+             no-overshoot ease-out so the em-based radius stays in lockstep
+             with font-size and doesn't bounce on settle. */
+          font-size var(--motion-duration-text) cubic-bezier(0.22, 1, 0.36, 1),
+          padding-top 280ms cubic-bezier(0.2, 0.95, 0.35, 1),
+          padding-bottom 280ms cubic-bezier(0.2, 0.95, 0.35, 1),
+          border-radius var(--motion-duration-text) cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .chip__label-optiona {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.1em;
+        margin-left: 0.1em;
+        vertical-align: baseline;
+        font-weight: inherit;
+        cursor: pointer;
+      }
+
+      .chip[data-key="listening"] .chip__volume-icon-a--muted path {
+        opacity: 0.38;
+      }
+
+      .chip__volume-icon-a {
+        flex-shrink: 0;
+        width: 0.72em;
+        height: 0.72em;
+        display: inline-block;
+        vertical-align: -0.06em;
+      }
+
+      .chip__volume-icon-a path {
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.75;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .chip:focus-visible {
+        outline: 2px solid #111;
+        outline-offset: 2px;
+      }
+      @media (hover: none) {
+        .chip:focus-visible {
+          outline: none;
+        }
+      }
+
+      /* Text chip — solid grey */
+      .chip--muted {
+        color: rgba(0, 0, 0, 0.85);
+        background: var(--chip-muted-bg);
+        border: 1px solid rgba(0, 0, 0, 0.22);
+        box-shadow: none;
+      }
+
+      /* Outlined — same weight as Cargo `1px solid rgba(0,0,0,0.2)` */
+      .chip--outline {
+        color: rgba(0, 0, 0, 0.85);
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        box-shadow: none;
+      }
+
+      /* Shown when JS cannot boot (e.g. file:// or blocked module) */
+      #appError {
+        display: none;
+        margin: 0.5rem 0.35rem;
+        padding: 0.65rem 0.85rem;
+        max-width: 42rem;
+        font-size: 0.95rem;
+        line-height: 1.35;
+        color: #1a1a1a;
+        background: #fff3cd;
+        border: 1px solid #856404;
+        border-radius: 6px;
+      }
+
+      #appError:not([hidden]) {
+        display: block;
+      }
+
+      /* ============================================================
+         Text — Minesweeper (text-minesweeper.js)
+         Scratch Win95 chrome: raised/sunken bevels via 4-side borders,
+         classic mine-counter palette, classic numeric color ramp.
+         ============================================================ */
+
+      .panel__body--text {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.6rem;
+        overflow: auto;
+        background: #fff;
+      }
+
+      .minesweeper {
+        font-family: "Tahoma", "Geneva", "Helvetica", sans-serif;
+        font-size: 13px;
+        color: #000;
+        --ms-cell: clamp(20px, 3.4vmin, 32px);
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .ms-frame {
+        background: #c0c0c0;
+        padding: 6px;
+        border-top: 3px solid #fff;
+        border-left: 3px solid #fff;
+        border-right: 3px solid #7b7b7b;
+        border-bottom: 3px solid #7b7b7b;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .ms-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 6px;
+        border-top: 2px solid #7b7b7b;
+        border-left: 2px solid #7b7b7b;
+        border-right: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+        background: #c0c0c0;
+      }
+
+      .ms-lcd {
+        font-family: "DSEG7-Classic", "Courier New", monospace;
+        font-weight: 700;
+        font-size: 22px;
+        line-height: 1;
+        color: #ff0000;
+        background: #000;
+        padding: 2px 4px;
+        border-top: 1px solid #7b7b7b;
+        border-left: 1px solid #7b7b7b;
+        border-right: 1px solid #fff;
+        border-bottom: 1px solid #fff;
+        letter-spacing: 1px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .ms-face {
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
+          "Twemoji Mozilla", "EmojiOne Color", sans-serif;
+        font-weight: 400;
+        font-size: 18px;
+        line-height: 1;
+        width: 28px;
+        height: 28px;
+        background: #c0c0c0;
+        color: #000;
+        border-top: 2px solid #fff;
+        border-left: 2px solid #fff;
+        border-right: 2px solid #7b7b7b;
+        border-bottom: 2px solid #7b7b7b;
+        cursor: pointer;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .ms-face:active {
+        border-top: 2px solid #7b7b7b;
+        border-left: 2px solid #7b7b7b;
+        border-right: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+      }
+
+      .ms-board {
+        display: grid;
+        grid-template-columns: repeat(var(--ms-cols), var(--ms-cell));
+        grid-template-rows: repeat(var(--ms-rows), var(--ms-cell));
+        gap: 0;
+        border-top: 3px solid #7b7b7b;
+        border-left: 3px solid #7b7b7b;
+        border-right: 3px solid #fff;
+        border-bottom: 3px solid #fff;
+        background: #c0c0c0;
+      }
+
+      .ms-cell {
+        width: var(--ms-cell);
+        height: var(--ms-cell);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Tahoma", "Geneva", sans-serif;
+        font-weight: 900;
+        font-size: calc(var(--ms-cell) * 0.62);
+        line-height: 1;
+        background: #c0c0c0;
+        color: #000;
+        cursor: default;
+      }
+
+      .ms-cell--hidden {
+        border-top: 2px solid #fff;
+        border-left: 2px solid #fff;
+        border-right: 2px solid #7b7b7b;
+        border-bottom: 2px solid #7b7b7b;
+        cursor: pointer;
+      }
+
+      /* Press-and-hold preview: flatten bevel like a revealed cell. Excludes flagged
+         tiles — they can't be opened, so they stay raised. Border widths stay 2px on
+         every side so nothing in the grid shifts a pixel. */
+      .ms-cell--hidden:not(.ms-cell--flag):active {
+        border-top: 2px solid #7b7b7b;
+        border-left: 2px solid #7b7b7b;
+        border-right: 2px solid #c0c0c0;
+        border-bottom: 2px solid #c0c0c0;
+      }
+
+      .ms-cell--open {
+        border: 1px solid #7b7b7b;
+        border-right: none;
+        border-bottom: none;
+        background: #c0c0c0;
+      }
+
+      /* Emoji glyphs (mine, flag) fill less of their box than digits — shrink the font
+         so they sit cleanly inside the cell, and route through the OS emoji font chain. */
+      .ms-cell--mine,
+      .ms-cell--flag {
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
+          "Twemoji Mozilla", "EmojiOne Color", sans-serif;
+        font-size: calc(var(--ms-cell) * 0.58);
+        font-weight: 400;
+      }
+
+      .ms-cell--mine {
+        background: #c0c0c0;
+        color: #000;
+      }
+
+      .ms-cell--boom {
+        background: #ff0000;
+      }
+
+      .ms-diff {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+        padding-top: 2px;
+      }
+
+      .ms-diff__btn {
+        font-family: "Tahoma", "Geneva", sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        background: #c0c0c0;
+        color: #000;
+        border-top: 2px solid #fff;
+        border-left: 2px solid #fff;
+        border-right: 2px solid #7b7b7b;
+        border-bottom: 2px solid #7b7b7b;
+        cursor: pointer;
+      }
+      /* Bevel inverts only — no font-weight / padding / size change so the row stays
+         pixel-stable when the active button or :active state flips. */
+      .ms-diff__btn:active,
+      .ms-diff__btn.is-active {
+        border-top: 2px solid #7b7b7b;
+        border-left: 2px solid #7b7b7b;
+        border-right: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+      }
+
+      /* Hide the yellow banner over the Win95 gray frame for the Text panel. */
+      .panel.panel--for-text .panel__banner {
+        display: none;
+      }
+
+      /* ============================================================
+         Win98 floating window — wraps Minesweeper (text-minesweeper.js).
+         Mounted on <body>, draggable by the title bar, closeable via [×].
+         z-index is set imperatively on focus so multiple windows could
+         stack later (currently only Minesweeper exists).
+         ============================================================ */
+      .ms-window {
+        position: fixed;
+        z-index: 1000;
+        background: #c0c0c0;
+        /* Classic Win98 raised outer bevel: 2px white/grey on TL, 2px dark grey/black on BR */
+        border-top: 2px solid #dfdfdf;
+        border-left: 2px solid #dfdfdf;
+        border-right: 2px solid #000;
+        border-bottom: 2px solid #000;
+        box-shadow:
+          inset 1px 1px 0 #fff,
+          inset -1px -1px 0 #7b7b7b;
+        padding: 2px;
+        font-family: "Tahoma", "Geneva", "Helvetica", sans-serif;
+        font-size: 11px;
+        color: #000;
+        /* Stop the page from rubber-banding when the user drags the window.
+           Body content sets its own touch-action (none) to kill pinch-zoom. */
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        max-width: calc(100vw - 8px);
+        max-height: calc(100vh - 8px);
+        max-height: calc(100dvh - 8px);
+      }
+
+      /* Subtle perf nudge — promote a layer while dragging so paints are cheap. */
+      .ms-window--dragging {
+        will-change: left, top;
+      }
+
+      .ms-window__titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px;
+        height: 18px;
+        padding: 0 2px 0 4px;
+        background: linear-gradient(90deg, #0a246a 0%, #a6caf0 100%);
+        color: #fff;
+        font-weight: 700;
+        font-family: "Tahoma", "Geneva", sans-serif;
+        font-size: 11px;
+        line-height: 18px;
+        cursor: grab;
+        /* Don't let touch handlers turn into native scroll/zoom on mobile. */
+        touch-action: none;
+      }
+
+      .ms-window--dragging .ms-window__titlebar {
+        cursor: grabbing;
+      }
+
+      .ms-window__title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1 1 auto;
+        text-shadow: 0 0 1px rgba(0, 0, 0, 0.4);
+      }
+
+      .ms-window__controls {
+        display: inline-flex;
+        gap: 2px;
+        flex: 0 0 auto;
+      }
+
+      /* Win98 close box: 14×14 raised square with a 7×7 X glyph. We use a unicode
+         × at small size — sharp enough at this scale; no SVG asset required. */
+      .ms-window__close {
+        width: 14px;
+        height: 14px;
+        padding: 0;
+        margin: 0;
+        background: #c0c0c0;
+        color: #000;
+        font-family: "Marlett", "Tahoma", sans-serif;
+        font-size: 12px;
+        line-height: 1;
+        font-weight: 700;
+        border-top: 1px solid #fff;
+        border-left: 1px solid #fff;
+        border-right: 1px solid #000;
+        border-bottom: 1px solid #000;
+        box-shadow: inset -1px -1px 0 #7b7b7b, inset 1px 1px 0 #dfdfdf;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ms-window__close > span {
+        display: inline-block;
+        margin-top: -2px;
+      }
+
+      .ms-window__close:active {
+        border-top: 1px solid #000;
+        border-left: 1px solid #000;
+        border-right: 1px solid #fff;
+        border-bottom: 1px solid #fff;
+        box-shadow: inset 1px 1px 0 #7b7b7b, inset -1px -1px 0 #dfdfdf;
+      }
+
+      .ms-window__close:focus-visible {
+        outline: 1px dotted #000;
+        outline-offset: -3px;
+      }
+
+      .ms-window__body {
+        background: #c0c0c0;
+        padding: 4px;
+        /* No pinch-zoom inside the game grid (iOS Safari ignores user-scalable=no
+           in some contexts; this kills the gesture at the element). Tap clicks
+           still register because touch-action only blocks browser default gestures. */
+        touch-action: none;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* Center the existing Minesweeper frame inside the window body. */
+      .ms-window__body .minesweeper {
+        margin: 0;
+      }
+
+      /* ============================================================
+         Idle screensaver overlay (below Minesweeper window z-index).
+         ============================================================ */
+      .idle-screensaver {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 360ms ease-out;
+      }
+      .idle-screensaver.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+        transition-duration: 4200ms;
+        transition-timing-function: ease;
+      }
+      .idle-screensaver__bg {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        pointer-events: none;
+      }
+      .idle-screensaver__path-src {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .idle-screensaver__canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        pointer-events: none;
+      }
+
+      /* --- Accessibility: keyboard focus rings for panel toolbar buttons --- */
+      /* Mouse / programmatic focus on desktop Safari shows the default ring on [Close]
+         because app.js calls panelClose.focus() after opening. Suppress the ring unless
+         focus arrived via keyboard (:focus-visible), which keeps a11y intact. */
+      .panel__link:focus {
+        outline: none;
+      }
+      .panel__link:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+        border-radius: 2px;
+      }
+
+      /* --- Accessibility: honour reduced-motion preference --- */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+          scroll-behavior: auto !important;
+        }
+
+        body {
+          /* Keep app.js's PANEL_MS fallback timer short and aligned. */
+          --motion-duration: 0.001s;
+          --motion-duration-text: 0.001s;
+        }
+      }

@@ -1,0 +1,19 @@
+{
+  "name": "store1",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Omar J — Design Engineer. Static portfolio site.",
+  "author": "Omar J",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "echo 'Static site — no compile step'",
+    "package:netlify": "rm -f netlify.zip && zip -r netlify.zip netlify.toml *.html robots.txt sitemap.xml favicon.svg styles.css *.js vendor/pretext media/projects \"Screen Shot 2026-03-12 at 10.26.03 pm.webp\" -x '*.mov' -x '*.DS_Store' -x '*/.DS_Store'",
+    "vendor:pretext": "rsync -a --delete node_modules/@chenglou/pretext/dist/ vendor/pretext/",
+    "dev": "python3 -m http.server 3000 --bind 127.0.0.1",
+    "dev:serve": "npx --yes serve . -l 3000",
+    "dev:py": "python3 -m http.server 8765 --bind 127.0.0.1"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "^0.0.5"
+  }
+}

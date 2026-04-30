@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Screensaver lab — Pretext + path</title>
+    <!-- Pretext = per-grapheme paint advances (canvas). SVG path = geometry only (getTotalLength / sampling). Refine here, then port to app.js. Serve over http(s). #debug → window.__screensaverLab -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #0a0a0a;
+        touch-action: none;
+        user-select: none;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .path-src {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lab" aria-hidden="true"></canvas>
+    <svg class="path-src" viewBox="0 0 800 300" aria-hidden="true">
+      <path
+        id="infinityPath"
+        d="M400,150 C835,-158 860,458 400,150 C-60,-130 -35,430 400,150 Z"
+      />
+    </svg>
+    <script type="module">
+      import {
+        prepareWithSegments,
+        measureNaturalWidth,
+      } from "./vendor/pretext/layout.js";
+
+      const MARQUEE =
+        " OMAR J  ●  DESIGN ENGINEER  ●  BUILDING PLAYFUL SYSTEMS IN MOTION  ● ".repeat(
+          3
+        );
+      const FONT = '500 12px "Courier New", Courier, monospace';
+      /** Path polyline resolution (lower = cheaper; 500 is plenty for this curve). */
+      const PATH_SAMPLES = 500;
+      const DURATION_SEC = 400;
+      const PERP_OFFSET = 5;
+      const TANGENT_DELTA_PX = 3;
+      const VB = { w: 800, h: 300 };
+      /** Cap redraw rate so the GPU can rest between frames (~half the work of 60 Hz). */
+      const TARGET_FPS = 24;
+      /** Saver: keep backing store small; 1 is softest on battery, 1.25 still sharp on retina. */
+      const MAX_DPR = 1.25;
+
+      /** Pretext: one prepare per distinct grapheme, cache paint advance (ribbon width). */
+      const advanceCache = new Map();
+      function pretextAdvance(grapheme) {
+        let w = advanceCache.get(grapheme);
+        if (w === undefined) {
+          const p = prepareWithSegments(grapheme, FONT, {
+            whiteSpace: "pre-wrap",
+          });
+          w = measureNaturalWidth(p);
+          advanceCache.set(grapheme, w);
+        }
+        return w;
+      }
+
+      const graphemeSeg = new Intl.Segmenter(undefined, {
+        granularity: "grapheme",
+      });
+      const letters = [...graphemeSeg.segment(MARQUEE)].map((s) => s.segment);
+
+      const advances = letters.map((g) => pretextAdvance(g));
+      let cumBefore = [];
+      let acc = 0;
+      for (let i = 0; i < advances.length; i++) {
+        cumBefore.push(acc);
+        acc += advances[i];
+      }
+      const totalRibbon = acc;
+
+      const preparedFull = prepareWithSegments(MARQUEE, FONT, {
+        whiteSpace: "pre-wrap",
+      });
+      const ribbonNaturalWidth = measureNaturalWidth(preparedFull);
+
+      const path = document.getElementById("infinityPath");
+      const pathLen = path.getTotalLength();
+      const points = [];
+      for (let i = 0; i <= PATH_SAMPLES; i++) {
+        const dist = (i / PATH_SAMPLES) * pathLen;
+        points.push(path.getPointAtLength(dist));
+      }
+
+      function xyAtPathDist(u) {
+        const u0 = ((u % pathLen) + pathLen) % pathLen;
+        const tNorm = u0 / pathLen;
+        const index = tNorm * PATH_SAMPLES;
+        const lower = Math.min(Math.floor(index), PATH_SAMPLES - 1);
+        const upper = lower + 1;
+        const lerp = index - lower;
+        const x =
+          points[lower].x + (points[upper].x - points[lower].x) * lerp;
+        const y =
+          points[lower].y + (points[upper].y - points[lower].y) * lerp;
+        return { x, y };
+      }
+
+      function xyTangentAtPathDist(u) {
+        const p0 = xyAtPathDist(u);
+        const p1 = xyAtPathDist(u + TANGENT_DELTA_PX);
+        const dx = p1.x - p0.x;
+        const dy = p1.y - p0.y;
+        return { x: p0.x, y: p0.y, dx, dy };
+      }
+
+      const canvas = document.getElementById("lab");
+      const ctx = canvas.getContext("2d");
+
+      let reduceMotion =
+        typeof matchMedia !== "undefined" &&
+        matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+      }
+
+      function drawFrameAt(progress) {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const dpr = canvas.width / w;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+        ctx.fillRect(0, 0, w, h);
+
+        const s = Math.min(w / VB.w, h / VB.h);
+        const ox = (w - VB.w * s) / 2;
+        const oy = (h - VB.h * s) / 2;
+
+        ctx.save();
+        ctx.translate(ox, oy);
+        ctx.scale(s, s);
+        ctx.globalCompositeOperation = "difference";
+        ctx.font = FONT;
+        ctx.fillStyle = "rgb(255, 255, 255)";
+        ctx.textBaseline = "middle";
+
+        const ribbonScroll = progress * totalRibbon;
+
+        for (let i = 0; i < letters.length; i++) {
+          const ch = letters[i];
+          const centerRibbon = cumBefore[i] + advances[i] / 2;
+          let pos =
+            (((centerRibbon + ribbonScroll) % totalRibbon) + totalRibbon) %
+            totalRibbon;
+          const pathDist = (pos / totalRibbon) * pathLen;
+          const { x, y, dx, dy } = xyTangentAtPathDist(pathDist);
+          const len = Math.hypot(dx, dy);
+          let px = 0;
+          let py = 0;
+          if (len > 0) {
+            px = (-dy / len) * PERP_OFFSET;
+            py = (dx / len) * PERP_OFFSET;
+          }
+          const finalX = x + px;
+          const finalY = y + py;
+          const angle = Math.atan2(dy, dx);
+
+          ctx.save();
+          ctx.translate(finalX, finalY);
+          ctx.rotate(angle);
+          ctx.fillText(ch, 0, 0);
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      let raf = 0;
+      let lastDrawTs = 0;
+      const frameIntervalMs = 1000 / TARGET_FPS;
+
+      function frame(ts) {
+        if (document.hidden) return;
+        if (ts - lastDrawTs < frameIntervalMs - 0.25) {
+          raf = requestAnimationFrame(frame);
+          return;
+        }
+        lastDrawTs = ts;
+        const progress = (performance.now() / 1000 / DURATION_SEC) % 1;
+        drawFrameAt(progress);
+        if (!reduceMotion) raf = requestAnimationFrame(frame);
+      }
+
+      function boot() {
+        resize();
+        if (reduceMotion) {
+          drawFrameAt(0);
+          return;
+        }
+        raf = requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("resize", () => {
+        resize();
+        if (reduceMotion) drawFrameAt(0);
+      });
+
+      if (typeof matchMedia !== "undefined") {
+        const mq = matchMedia("(prefers-reduced-motion: reduce)");
+        mq.addEventListener("change", () => {
+          reduceMotion = mq.matches;
+          cancelAnimationFrame(raf);
+          raf = 0;
+          lastDrawTs = 0;
+          if (reduceMotion) drawFrameAt(0);
+          else raf = requestAnimationFrame(frame);
+        });
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        } else if (!reduceMotion) {
+          lastDrawTs = 0;
+          raf = requestAnimationFrame(frame);
+        }
+      });
+
+      if (location.hash === "#debug") {
+        const sumAdvances = advances.reduce((a, b) => a + b, 0);
+        globalThis.__screensaverLab = {
+          graphemeCount: letters.length,
+          totalRibbon,
+          sumAdvances,
+          ribbonNaturalWidth,
+          advanceCacheSize: advanceCache.size,
+        };
+      }
+
+      boot();
+    </script>
+  </body>
+</html>

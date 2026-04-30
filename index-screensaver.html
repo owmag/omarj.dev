@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Infinity Text Letters Ultra Smooth</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        touch-action: none;
+        user-select: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #111;
+        cursor:crosshair;
+      }
+      svg {
+        width: 180vw;
+        height: auto;
+      }
+      text {
+        font-size: 8px;
+        fill: white;
+        font-family:'Courier New', Courier, monospace;
+        mix-blend-mode: difference !important;
+      }
+      #infinityPath {
+        fill: none;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <svg viewBox="0 0 800 300">
+      <path
+        id="infinityPath"
+        d="M400,150 C835,-158 860,458 400,150 C-60,-130 -35,430 400,150 Z"
+      />
+    </svg>
+
+    <script>
+      const svg = document.querySelector("svg");
+      const path = document.getElementById("infinityPath");
+      const text =
+        "OMAR J ● DESIGN ENGINEER ● BUILDING PLAYFUL SYSTEMS IN MOTION ● ".repeat(
+          4
+        );
+      const letters = text.split("");
+      const duration = 120; // Xseconds for full loop
+      const samples = 1000; // number of points precomputed
+
+      // precompute path points for smooth interpolation
+      const points = [];
+      for (let i = 0; i <= samples; i++) {
+        const dist = (i / samples) * path.getTotalLength();
+        points.push(path.getPointAtLength(dist));
+      }
+
+      // create letters
+      const letterElements = letters.map((char) => {
+        const el = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        el.textContent = char;
+        svg.appendChild(el);
+        return el;
+      });
+
+      // precompute start offsets (0→1)
+      const startOffsets = letters.map((_, i) => i / letters.length);
+
+      const offset = 5; // perpendicular offset in pixels (adjust to taste)
+
+      let startTime = null;
+      function animate(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = (timestamp - startTime) / 1000; // seconds
+        const progress = (elapsed / duration) % 1;
+
+        letterElements.forEach((letter, i) => {
+          let t = (progress + startOffsets[i]) % 1;
+          let index = t * samples;
+          let lower = Math.floor(index);
+          let upper = (lower + 1) % points.length;
+          let lerp = index - lower;
+
+          let x = points[lower].x + (points[upper].x - points[lower].x) * lerp;
+          let y = points[lower].y + (points[upper].y - points[lower].y) * lerp;
+
+          // tangent vector
+          let nx = points[upper].x;
+          let ny = points[upper].y;
+          let dx = nx - x;
+          let dy = ny - y;
+          let len = Math.hypot(dx, dy);
+
+          let ox = 0,
+            oy = 0;
+          if (len > 0) {
+            ox = (-dy / len) * offset;
+            oy = (dx / len) * offset;
+          }
+
+          let finalX = x + ox;
+          let finalY = y + oy;
+
+          // move the letter
+          letter.setAttribute("x", finalX);
+          letter.setAttribute("y", finalY);
+
+          // rotate it along the path
+          let angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+          letter.setAttribute(
+            "transform",
+            `rotate(${angle},${finalX},${finalY})`
+          );
+        });
+
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>
