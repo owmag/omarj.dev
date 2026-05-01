@@ -796,7 +796,7 @@
             14 14,
           ns-resize;
         /* vw alone ignored vertical scaling of font-size (vh); em tracks type. */
-        --in-situ-entry-w: max(18vw, 11em);
+        --in-situ-entry-w: 20vw;
         position: relative;
         flex: 1 1 auto;
         min-height: 0;
