@@ -1779,7 +1779,7 @@ export function mountProjectsGridPortfolio(panelBody) {
             { key: "QUOMMUNE", label: "Principalskinsticker", color: "#85322e" },
             { key: "TEMPUS Katoomba", label: "Tempus Katoomba", color: "#d36445" },
             { key: "welcome.audio", label: "welcome.audio", color: "#0f49d9" },
-            { key: "B'WIG'D", label: "Rosy Sign Co.", color: "#49994f" },
+            // { key: "B'WIG'D", label: "Rosy Sign Co.", color: "#49994f" },
             { key: "2nd Model", label: "2nd Model", color: "#6672ce" },
             { key: "Chrome Extension - Pomodoro Timer", label: "Chrome Extension - Pomodoro Timer", color: "#a05adf" },
           ];
