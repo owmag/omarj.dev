@@ -795,7 +795,8 @@
         --in-situ-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath fill='none' stroke='%23222' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M14 5v18M9 11l5-6 5 6M9 17l5 6 5-6'/%3E%3C/svg%3E")
             14 14,
           ns-resize;
-        --in-situ-entry-w: 20vw;
+        /* vw alone ignored vertical scaling of font-size (vh); em tracks type. */
+        --in-situ-entry-w: max(18vw, 11em);
         position: relative;
         flex: 1 1 auto;
         min-height: 0;
