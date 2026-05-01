@@ -644,7 +644,6 @@
         min-height: 0;
         object-fit: cover;
         object-position: center;
-        filter: saturate(0);
       }
 
       /* Projects — index99-style grid (projects-grid-portfolio.js) */

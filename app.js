@@ -61,10 +61,7 @@ window.addEventListener("touchstart", markPointerInput, { capture: true, passive
 const log = (...args) => console.log("[store1]", ...args);
 
 /** Contact panel — full-bleed hero (same folder as this module). */
-const CONTACT_WEBP_URL = new URL(
-  "./Screen Shot 2026-03-12 at 10.26.03 pm.webp",
-  import.meta.url
-).href;
+const CONTACT_WEBP_URL = new URL("./BUSINESSCARD.webp", import.meta.url).href;
 
 /** Preload contact image; resolves after load + `decode()` when possible (bitmap ready for paint). */
 function preloadContactImage() {
@@ -1089,37 +1086,37 @@ async function main() {
            from the <img> element rect when aspect ratios disagree. Map a point
            in natural-image pixels (px, py) to element-local pixels so we can
            pin overlays to features in the photo regardless of resize. */
-        /* All marker geometry is in IMAGE-NATURAL pixels (image is 642×858).
+        /* All marker geometry is in IMAGE-NATURAL pixels (relative to bitmap size).
            At paint time we multiply by the cover scale so markers grow/shrink
            with the photo and stay glued to the same features. */
         const MARKER_SPECS = [
           {
             color: "red",
-            width: 120,
-            height: 20,
-            dx: 0,
-            dy: 10,
-            href: "tel:0432674199",
-            label: "Call 0432 674 199",
+            width: 160,
+            height: 23,
+            dx: 24,
+            dy: -8,
+            href: "mailto:contact@omarj.dev",
+            label: "Email contact@omarj.dev",
           },
           {
             color: "lime",
-            width: 120,
-            height: 20,
-            dx: 0,
-            dy: 30,
+            width: 110,
+            height: 23,
+            dx: -5,
+            dy: 15,
             href: "https://www.instagram.com/omarj.www/",
             label: "Instagram @omarj.www",
             external: true,
           },
           {
             color: "blue",
-            width: 180,
-            height: 20,
-            dx: 15,
-            dy: 50,
-            href: "mailto:contact@omarj.com",
-            label: "Email contact@omarj.com",
+            width: 120,
+            height: 23,
+            dx: -10,
+            dy: 38,
+            href: "tel:0432674199",
+            label: "Call 0432 674 199",
           },
         ];
         const markers = MARKER_SPECS.map((spec) => {
@@ -1191,8 +1188,8 @@ async function main() {
             "N:J;Omar;;;",
             "FN:Omar J",
             "TEL;TYPE=CELL,VOICE:+61432674199",
-            "EMAIL;TYPE=INTERNET:contact@omarj.com",
-            "item1.URL:https://www.omarj.com",
+            "EMAIL;TYPE=INTERNET:contact@omarj.dev",
+            "item1.URL:https://www.omarj.dev",
             "item1.X-ABLabel:_$!<HomePage>!$_",
             "item2.URL:https://www.instagram.com/omarj.www/",
             "item2.X-ABLabel:Instagram",
@@ -1458,6 +1455,19 @@ async function main() {
       btn.addEventListener("pointerenter", prefetch, { once: true, passive: true });
       btn.addEventListener("focusin", prefetch, { once: true });
       btn.addEventListener("touchstart", prefetch, { once: true, passive: true });
+    }
+    if (key === "contact") {
+      const warmContactImage = () => {
+        contactImageLoadPromise.then(() => {
+          if (typeof contactPanelImg.decode === "function") {
+            contactPanelImg.decode().catch(() => {
+              /* ignore */
+            });
+          }
+        });
+      };
+      btn.addEventListener("pointerenter", warmContactImage, { passive: true });
+      btn.addEventListener("touchstart", warmContactImage, { passive: true });
     }
 
     /* Language — the COLLAPSE choreography is split across the press gesture:

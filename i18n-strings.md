@@ -131,7 +131,7 @@ where a future implementer should read/write values.
 |---|---|---|---|---|---|
 | `contact.call` | Call 0432 674 199 | اتصال 0432 674 199 | | | |
 | `contact.instagram` | Instagram @omarj.www | إنستغرام @omarj.www | | | |
-| `contact.email` | Email contact@omarj.com | بريد إلكتروني contact@omarj.com | | | |
+| `contact.email` | Email contact@omarj.dev | بريد إلكتروني contact@omarj.dev | | | |
 | `contact.save` | Save Omar J to contacts | حفظ Omar J في جهات الاتصال | | | |
 
 ## 8. Listening panel (`listening-welcome-audio.js`)

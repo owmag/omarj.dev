@@ -1,0 +1,5 @@
+# Client-side routes (e.g. /contact, /bio) — must be last (single catch-all proxy).
+# Apex / naked domain → https://www.omarj.dev — set in Cloudflare (Bulk Redirects or
+# Single Redirect Rule); Pages _redirects cannot match by hostname.
+
+/*    /index.html   200
