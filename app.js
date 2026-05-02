@@ -113,7 +113,7 @@ const TALL_CHIP_EXTRA_Y_EM = 1.52;
 const CONTENT = {
   listening: { title: "Touch canvas to play/stop" },
   symposium: { title: "Language" },
-  label: { title: "Label" },
+  label: { title: "Type" },
   text: { title: "Text" },
   projects: { title: "Portfolio - Select" },
   bio: {
