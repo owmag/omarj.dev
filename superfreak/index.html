@@ -78,10 +78,22 @@
       grid-column: 1 / -1;
       height: 8rem;
     }
+    #desktop-only {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1rem;
+    }
+    #desktop-only[hidden] {
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <div class="page">
+  <p id="desktop-only" hidden>Please view this demo on a desktop or laptop.</p>
+  <div class="page" id="page">
     <p class="cell span-2">Website Improvement Demo<br>for Superfreak</p>
 
     <h2 class="cell span-2 pending" data-block="1" data-reveal="title">1. New tab opening for menus and store now in the same page</h2>
@@ -111,7 +123,7 @@
     </div>
     <div class="cell gap pending"></div>
 
-    <h2 class="cell span-2 pending" data-block="2" data-reveal="title">2. Remove expanding image on expanding info card</h2>
+    <h2 class="cell span-2 pending" data-block="2" data-reveal="title">2. Stop expanding image from expanding on info card expansion</h2>
     <div class="cell pending">
       <video data-block="2" data-src="../PITCH/broken-expand.mp4" muted playsinline loop autoplay preload="none"></video>
     </div>
