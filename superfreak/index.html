@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Superfreak — Website Improvement Demo</title>
+  <style>
+    * { margin: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: #000;
+      color: #fff;
+      font: 14px/1.4 system-ui, sans-serif;
+    }
+    .page {
+      --video-gap: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .cell {
+      min-width: 0;
+    }
+    .span-2 {
+      grid-column: 1 / -1;
+      padding: 1rem;
+    }
+    h2 {
+      font-size: 14px;
+      font-weight: normal;
+      max-width: 40rem;
+    }
+    h2.span-2:first-of-type {
+      padding: 4rem 1rem 1rem 3rem;
+    }
+    h2.span-2 ~ h2.span-2 {
+      padding: 3rem 1rem 3rem 3rem;
+    }
+    .col-label {
+      padding: 1rem;
+      text-align: center;
+    }
+    .gap {
+      grid-column: 1 / -1;
+      height: var(--video-gap);
+    }
+    .cell video {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    .pad-x {
+      padding-left: 4rem;
+      padding-right: 4rem;
+    }
+    .loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s ease;
+    }
+    .loader.out {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader">loading</div>
+
+  <div class="page">
+    <p class="cell span-2">Website Improvement Demo<br>for Superfreak</p>
+
+    <h2 class="cell span-2">1. New tab opening for menus and store now in the same page</h2>
+    <div class="cell col-label">Current</div>
+    <div class="cell col-label">Improved</div>
+    <div class="cell">
+      <video data-src="../PITCH/broken-menu.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell">
+      <video data-src="../PITCH/fixed-menu.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+
+    <div class="cell">
+      <video data-src="../PITCH/broken-menu2.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell">
+      <video data-src="../PITCH/fixed-menu2.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+
+    <div class="cell">
+      <video data-src="../PITCH/broken-shop.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell">
+      <video data-src="../PITCH/fixed-shop.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+
+    <h2 class="cell span-2">2. Remove expanding image on expanding info card</h2>
+    <div class="cell">
+      <video data-src="../PITCH/broken-expand.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell">
+      <video data-src="../PITCH/fixed-expand.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+
+    <h2 class="cell span-2">3. Landing page awkward footer partially showing now has space</h2>
+    <div class="cell">
+      <video data-src="../PITCH/broken-landingpage.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell">
+      <video data-src="../PITCH/fixed-landingpage.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+
+    <h2 class="cell span-2">4. Overscroll removed (stylistic)</h2>
+    <div class="cell">
+      <video data-src="../PITCH/broken-overscroll.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell">
+      <video data-src="../PITCH/fixed-overscroll.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+
+    <h2 class="cell span-2">5. Flashing page loads (performance fix)</h2>
+    <div class="cell pad-x">
+      <video data-src="../PITCH/broken-pageselect.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell pad-x">
+      <video data-src="../PITCH/fixed-pageselect.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+
+    <h2 class="cell span-2">6. Radio selects instead of check boxes and Captcha removal</h2>
+    <div class="cell pad-x">
+      <video data-src="../PITCH/broken-radio.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell pad-x">
+      <video data-src="../PITCH/fixed-radio.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+
+    <h2 class="cell span-2">7. Form no longer lets you send incorrect info</h2>
+    <div class="cell">
+      <video data-src="../PITCH/broken-form.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell">
+      <video data-src="../PITCH/fixed-form.mp4" muted playsinline loop autoplay preload="none"></video>
+    </div>
+    <div class="cell gap"></div>
+  </div>
+
+  <script>
+    const loader = document.getElementById("loader");
+    const videos = [...document.querySelectorAll("video[data-src]")];
+
+    function dismissLoader() {
+      loader.classList.add("out");
+      loader.addEventListener("transitionend", () => loader.remove(), { once: true });
+    }
+
+    function loadNext(i) {
+      if (i >= videos.length) {
+        dismissLoader();
+        return;
+      }
+      const video = videos[i];
+      video.src = video.dataset.src;
+      video.load();
+      const next = () => loadNext(i + 1);
+      video.addEventListener("canplaythrough", next, { once: true });
+      video.addEventListener("error", next, { once: true });
+    }
+
+    loadNext(0);
+  </script>
+</body>
+</html>
