@@ -1,6 +1,16 @@
 const revealed = new Set();
 const videos = [...document.querySelectorAll("video[data-src]")];
 
+const visibility = new IntersectionObserver(
+  (entries) => {
+    entries.forEach(({ target, intersectionRatio }) => {
+      if (intersectionRatio >= 1) target.play().catch(() => {});
+      else target.pause();
+    });
+  },
+  { threshold: 1 },
+);
+
 function revealTitle(block) {
   if (!block || revealed.has(block)) return;
   revealed.add(block);
@@ -23,6 +33,7 @@ function onVideoReady(video) {
 }
 
 videos.forEach((video) => {
+  visibility.observe(video);
   video.src = video.dataset.src;
   video.load();
   video.addEventListener("canplaythrough", () => onVideoReady(video), { once: true });

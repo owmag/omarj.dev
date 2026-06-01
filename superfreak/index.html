@@ -74,6 +74,10 @@
     .cell.gap.ready {
       height: var(--video-gap);
     }
+    .bottom-space {
+      grid-column: 1 / -1;
+      height: 8rem;
+    }
   </style>
 </head>
 <body>
@@ -160,6 +164,7 @@
       <video data-block="7" data-src="../PITCH/fixed-form.mp4" muted playsinline loop autoplay preload="none"></video>
     </div>
     <div class="cell gap pending"></div>
+    <div class="bottom-space"></div>
   </div>
 
   <script src="./superfreak.js"></script>
