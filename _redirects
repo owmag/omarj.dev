@@ -2,5 +2,7 @@
 # Apex / naked domain → https://www.omarj.dev — set in Cloudflare (Bulk Redirects or
 # Single Redirect Rule); Pages _redirects cannot match by hostname.
 
-/superfreak    /superfreak/index.html    200
+/superfreak/*    /superfreak/:splat    200
+/superfreak      /superfreak/index.html    200
+/PITCH/*         /PITCH/:splat    200
 /*    /index.html   200
